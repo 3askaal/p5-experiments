@@ -5,7 +5,6 @@ import { useEffect, useRef } from "react";
 import type P5 from "p5";
 
 export default function Canvas() {
-  const canvasRef = useRef(null)
 
   const setup = (p5: P5) => {
     const canvasWidth = window.innerWidth * 1
@@ -24,7 +23,7 @@ export default function Canvas() {
 
     let points: any[] = []
 
-    const amountPoints = (canvasWidth + canvasHeight) / 8
+    const amountPoints = Math.round((canvasWidth + canvasHeight) / 8)
 
     times(amountPoints, (i) => {
       const x = random(50, canvasWidth - 50)
@@ -51,7 +50,7 @@ export default function Canvas() {
     clearClosePoints(80)
 
     points.forEach((point) => {
-      // sort positions by distance relative to current point
+      // get distance and angle of all points compared to current point
       let comparedPoints = forEach(points.concat(), (comparingPoint) => {
 
         // diff between current point and comparing point
@@ -73,7 +72,9 @@ export default function Canvas() {
       point.surroundingPoints = slice(comparedPoints, 0, 6)
     })
 
-    // check connection from both sides
+    const lines: number[][][] = []
+
+    // draw lines between points and their surrounding points
     points.forEach((point, pointIndex) => {
       remove(point.surroundingPoints, (surroundingPoint: any, surroundingPointIndex) => {
         if (!includes(surroundingPoint.surroundingPoints, point)) {
@@ -88,15 +89,43 @@ export default function Canvas() {
           next = point.surroundingPoints[0]
         }
 
-        p5.line(point.x, point.y, surroundingPoint.x, surroundingPoint.y);
-        p5.stroke(sample(colors) as string);
+        lines.push([[point.x, point.y], [surroundingPoint.x, surroundingPoint.y]])
       })
+    })
+
+    // clear crossing lines
+    const linesToDraw = lines.filter((line1) => {
+      const [[l1x1, l1y1], [l1x2, l1y2]] = line1
+
+      return !lines.some((line2) => {
+        const [[l2x1, l2y1], [l2x2, l2y2]] = line2
+
+        return checkLinesIntersect(l1x1, l1y1, l1x2, l1y2, l2x1, l2y1, l2x2, l2y2)
+      })
+    })
+
+    linesToDraw.forEach((line) => {
+      const [[l1x1, l1y1], [l1x2, l1y2]] = line
+
+      p5.line(l1x1, l1y1, l1x2, l1y2);
+      p5.stroke(sample(colors) as string);
     })
   }
 
-  useEffect(() => {
-    console.log('test');
-  }, [])
+  const checkLinesIntersect = (...points: number[]) => {
+    const [a,b,c,d,p,q,r,s] = points;
+
+    let det, gamma, lambda;
+    det = (c - a) * (s - q) - (r - p) * (d - b);
+
+    if (det === 0) {
+      return false;
+    } else {
+      lambda = ((s - q) * (r - a) + (p - r) * (s - b)) / det;
+      gamma = ((b - d) * (r - a) + (c - a) * (s - b)) / det;
+      return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
+    }
+  }
 
   return (
     <Sketch setup={setup} draw={draw} />
