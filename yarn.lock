@@ -355,6 +355,11 @@ ast-types-flow@^0.0.7:
   resolved "https://registry.yarnpkg.com/ast-types-flow/-/ast-types-flow-0.0.7.tgz#f70b735c6bca1a5c9c22d982c3e39e7feba3bdad"
   integrity sha512-eBvWn1lvIApYMhzQMsu9ciLfkBY499mFZlNqG+/9WR7PVlroQw0vG30cOQQbaKz3sCEc44TAOu2ykzqXSNnwag==
 
+await-each@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/await-each/-/await-each-1.1.0.tgz#62372737984b403b0c16561093a44ab1eade8f6c"
+  integrity sha512-IQzaU+Vd5scccdPbEFtitbXtUH2o0hcoWtwAFXJ/PLs6DOtzv9ZwJ9OF+yG6anVE/T6bBAuHY2JsuSo8XnLw6w==
+
 axe-core@^4.4.3:
   version "4.5.0"
   resolved "https://registry.yarnpkg.com/axe-core/-/axe-core-4.5.0.tgz#6efe2ecdba205fcc9d7ddb3d48c2cf630f70eb5e"
