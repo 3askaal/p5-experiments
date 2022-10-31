@@ -137,14 +137,8 @@ export default function Canvas() {
       p5.stroke(sample(colors) as string);
     })
 
-    const dotColors = ['yellow', 'green', 'blue', 'red', 'purple', 'cyan']
-
     const getActualPoint = (sp: Point | SurroundingPoint): Point => {
       return points.find(({ x, y }) => isEqual([x, y], [sp.x, sp.y]))
-    }
-
-    const getClosestSp = (sps: SurroundingPoint[], x: number): SurroundingPoint => {
-      return sps.reduce((acc, current) => (current.angle >= x && (!acc || current.angle < acc.angle)) ? current : acc, sps[0]);
     }
 
     const isSamePosition = (p1: Point | SurroundingPoint, p2: Point | SurroundingPoint): boolean => {
@@ -197,9 +191,9 @@ export default function Canvas() {
         return shape
       })
 
-      console.log('shapes: ', shapes)
-
       shapes.forEach((shape) => {
+        p5.fill('rgba(0, 255, 0, 0.25)');
+
         p5.beginShape()
         shape.forEach((point) => {
           p5.vertex(point.x, point.y)
