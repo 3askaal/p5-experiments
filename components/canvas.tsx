@@ -2,7 +2,33 @@ import Sketch from "react-p5";
 import randomColor from "randomcolor";
 import { forEach, includes, isEqual, last, orderBy, random, sample, shuffle, slice, sortBy, tail, times, uniq } from 'lodash';
 import { useEffect, useRef } from "react";
-import type P5 from "p5";
+import P5 from "p5";
+
+type X = number
+type Y = number
+type P = [X, Y]
+type L = [P, P]
+
+type Point = {
+  x: number;
+  y: number;
+  i: number; // index
+  surroundingPoints: SurroundingPoint[];
+}
+
+type SurroundingPoint = Omit<Point, 'surroundingPoints'> & { distance: number; angle: number; }
+
+const getAngleToPoint = (p1: Point, p2: Point) => {
+  const xDiff = p1.x - p2.x;
+  const yDiff = p1.y - p2.y;
+  return 180 + Math.atan2(yDiff, xDiff) * (180 / Math.PI);
+}
+
+const getDistanceToPoint = (p1: Point, p2: Point) => {
+  const xDiff = p1.x - p2.x;
+  const yDiff = p1.y - p2.y;
+  return Math.sqrt(xDiff * xDiff + yDiff * yDiff);
+}
 
 export default function Canvas() {
 
@@ -19,7 +45,7 @@ export default function Canvas() {
     const canvasHeight = p5.height
 
     // const colors = randomColor({ hue: hue.value, luminosity: luminosity.value, count: 180 })
-    const colors = randomColor({ hue: 'blue', luminosity: undefined, count: 180, format: 'rgba', alpha: 0.25 })
+    const colors = randomColor({ hue: 'blue', luminosity: 'bright', count: 180, format: 'rgba', alpha: 0.25 })
 
     const amountPoints = Math.round((canvasWidth + canvasHeight) / 8)
 
@@ -58,18 +84,11 @@ export default function Canvas() {
 
     points = points.map((point) => {
       // get distance and angle of all points compared to current point
-      let comparedPoints = points.map((comparingPoint) => {
-        // diff between current point and comparing point
-        const xDiff = point.x - comparingPoint.x
-        const yDiff = point.y - comparingPoint.y
-
-        // define distance and angle
-        return {
-          ...comparingPoint,
-          distance: Math.sqrt(xDiff * xDiff + yDiff * yDiff),
-          angle: 180 + Math.atan2(yDiff, xDiff) * (180 / Math.PI),
-        }
-      })
+      let comparedPoints = points.map((comparingPoint) => ({
+        ...comparingPoint,
+        distance: getDistanceToPoint(point, comparingPoint),
+        angle: getAngleToPoint(point, comparingPoint),
+      }))
 
       // sort on distance
       comparedPoints = sortBy(comparedPoints, ['distance'], ['desc'])
@@ -84,39 +103,11 @@ export default function Canvas() {
       }
     })
 
-    type X = number
-    type Y = number
-    type P = [X, Y]
-    type L = [P, P]
-
-    type Point = {
-      x: number;
-      y: number;
-      i: number; // index
-      surroundingPoints: SurroundingPoint[];
-    }
-
-    type SurroundingPoint = Omit<Point, 'surroundingPoints'> & { distance: number; angle: number; }
-
     let lines: L[] = []
 
     // draw lines between points and their surrounding points
     points = points.map((point) => {
-      // point.surroundingPoints = point.surroundingPoints.reduce((acc: any[], surroundingPoint: any) => {
-      //   if (!includes(surroundingPoint.surroundingPoints, point)) {
-      //     acc.push(surroundingPoint)
-      //   }
-
-      //   return acc
-      // }, [])
-
-      point.surroundingPoints = point.surroundingPoints.reduce((acc: any, surroundingPoint: any, surroundingPointIndex: number) => {
-        // let next = point.surroundingPoints[surroundingPointIndex + 1]
-
-        // if (!next) {
-        //   next = point.surroundingPoints[0]
-        // }
-
+      point.surroundingPoints = point.surroundingPoints.reduce((acc: SurroundingPoint[], surroundingPoint: SurroundingPoint) => {
         const newLine: L = [[point.x, point.y], [surroundingPoint.x, surroundingPoint.y]]
 
         if (!lines.some((line) => checkLinesIntersect(...newLine.flat(), ...line.flat()))) {
@@ -124,8 +115,20 @@ export default function Canvas() {
           acc.push(surroundingPoint)
         }
 
+        if (lines.some((line) => isEqual(line, newLine.reverse()))) {
+          acc.push(surroundingPoint)
+        }
+
         return acc
       }, [])
+
+      // point.surroundingPoints = point.surroundingPoints.reduce((acc: any[], surroundingPoint: any) => {
+      //   if (!includes(surroundingPoint.surroundingPoints, point)) {
+      //     acc.push(surroundingPoint)
+      //   }
+
+      //   return acc
+      // }, [])
 
       return point
     })
@@ -137,7 +140,7 @@ export default function Canvas() {
       p5.stroke(sample(colors) as string);
     })
 
-    const getActualPoint = (sp: Point | SurroundingPoint): Point => {
+    const getActualPoint = (sp: SurroundingPoint): Point => {
       return points.find(({ x, y }) => isEqual([x, y], [sp.x, sp.y]))
     }
 
@@ -145,51 +148,60 @@ export default function Canvas() {
       return isEqual([p1.x, p1.y], [p2.x, p2.y]);
     }
 
-    const findNext = (prevP: Point | SurroundingPoint, currentP: Point | SurroundingPoint): Point | null => {
-      console.log('prev: ', prevP)
-      console.log('current: ', currentP)
+    const getClosestSurrounding = (angle: number, points: SurroundingPoint[]) => points.reduce((a, b) => {
+      return Math.abs(b.angle - angle) < Math.abs(a.angle - angle) ? b : a;
+    });
 
-      // get actual point
-      const p = getActualPoint(currentP)
+    const findNext = (shape: Point[]): Point | null => {
+      console.log('')
+      console.log(`>>>>>> findNext: # ${shape.length + 1}`)
+      const [prev, current] = [...shape].slice(-2)
+      const first = shape[0]
+
+      console.log(`first: `, [shape[0].x, shape[0].y])
+      if (shape.length > 2) {
+        console.log(`prev: `, [prev.x, prev.y])
+      }
+      console.log(`current: `, [current.x, current.y])
+
       // get angle of previous point
-      const previousAngle = (p.surroundingPoints.find(({ x, y }) => isEqual([x, y], [prevP.x, prevP.y]))?.angle || 0)
-      const remainingSps = p.surroundingPoints.filter(({ x, y }) => !isEqual([x, y], [prevP.x, prevP.y]))
-      const spsOrderedByAngle = orderBy(remainingSps, 'angle', 'desc')
-      const getClosestSurrounding = spsOrderedByAngle.find((item) => item.angle < previousAngle)
+      const angleToPreviousPoint = getAngleToPoint(current, prev)
+
+      const angleToFirstPoint = getAngleToPoint(current, first)
+      console.log('angleToFirstPoint: ', angleToFirstPoint)
+
+      // remove previous point from surrounding
+      const remainingSurroundingPoints = orderBy(current.surroundingPoints.filter(({ x, y }) => !isEqual([x, y], [prev.x, prev.y])), 'angle', 'desc')
+      console.log('remainingSurroundingPoints: ', remainingSurroundingPoints)
+
+      const firstPoint = remainingSurroundingPoints.find(({ x, y }) => isEqual([x, y], [first.x, first.y]))
+      const closestToPreviousAngle = getClosestSurrounding(angleToFirstPoint, remainingSurroundingPoints)
+      const closestSurrounding = firstPoint ||
+        closestToPreviousAngle ||
+        remainingSurroundingPoints[0]
 
       // if (!getClosestSurrounding) throw new Error('surrounding point not found!')
 
-      return getClosestSurrounding ? getActualPoint(getClosestSurrounding) : null
+      return closestSurrounding ? getActualPoint(closestSurrounding) : null
     }
 
     const getShapes = (p: Point): any[] => {
       const shapes = [p.surroundingPoints[0]].map((sp) => {
-        console.log('> for each surroundingPoint')
-
         let shapeDefined = false
         const shape = [p, getActualPoint(sp)]
 
         let tries = 1
 
-        p5.stroke('white');
-        p5.strokeWeight(8);
-        p5.point(p.x, p.y);
-
-        p5.stroke('grey');
-        p5.strokeWeight(8);
-        p5.point(sp.x, sp.y);
-
         while (!shapeDefined) {
-          console.log('> while !shapeDefined')
           tries++
-
-          const [prevPoint, currentPoint] = shape.slice(-2)
-          const newPoint: Point | null = findNext(prevPoint, currentPoint)
+          const newPoint: Point | null = findNext(shape)
           const samePosition = newPoint && isSamePosition(newPoint, p)
 
           if (!newPoint || samePosition || tries > 10) {
             shapeDefined = true
-          } else {
+          }
+
+          if (newPoint) {
             shape.push(newPoint)
           }
         }
@@ -203,8 +215,8 @@ export default function Canvas() {
 
     // define shapes
     const shapes = points.map((point, i) => {
-      if (!i) return getShapes(point)
-      return []
+      if (!i) return getShapes(point);
+      return [];
     })
 
     console.log('shapes: ', shapes)
@@ -215,8 +227,12 @@ export default function Canvas() {
       p5.beginShape()
       p5.fill(sample(colors) || '');
 
-      shape.forEach((point) => {
+      shape.forEach((point, index) => {
         p5.vertex(point.x, point.y)
+        p5.stroke('white');
+        p5.strokeWeight(10 - (2 * index));
+        p5.point(point.x, point.y);
+        p5.strokeWeight(0)
       })
 
       p5.endShape();
