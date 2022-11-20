@@ -14,6 +14,16 @@ export const getClosestSurrounding = (angle: number, points: SurroundingPoint[])
   return Math.abs(b.angle - angle) < Math.abs(a.angle - angle) ? b : a;
 });
 
+export const getClosestSurroundingBasedOnDirection = (angle: number, points: SurroundingPoint[], dir: 'CW' | 'CCW') => {
+  const higherThenAngle = points.filter((point) => dir === 'CW' ? point.angle > angle : point.angle < angle).sort()
+
+  if (higherThenAngle.length) {
+    return higherThenAngle[0]
+  } else {
+    return points.sort()[0]
+  }
+}
+
 export const getAngleToPoint = (p1: Point, p2: Point) => {
   const xDiff = p1.x - p2.x;
   const yDiff = p1.y - p2.y;

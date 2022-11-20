@@ -3,7 +3,7 @@ import randomColor from "randomcolor";
 import { forEach, includes, isEqual, last, orderBy, random, sample, shuffle, slice, sortBy, tail, times, uniq } from 'lodash';
 import { useEffect, useRef } from "react";
 import P5 from "p5";
-import { clearClosePoints, defineLines, defineSurroundingPoints, getActualPoint, getAngleToPoint, getClosestSurrounding, isSamePosition } from "./helpers/points";
+import { clearClosePoints, defineLines, defineSurroundingPoints, getActualPoint, getAngleToPoint, getClosestSurrounding, getClosestSurroundingBasedOnDirection, isSamePosition } from "./helpers/points";
 
 export type X = number
 export type Y = number
@@ -83,7 +83,7 @@ export default function Canvas() {
       console.log('remainingSurroundingPoints: ', remainingSurroundingPoints)
 
       const firstPoint = remainingSurroundingPoints.find(({ x, y }) => isEqual([x, y], [first.x, first.y]))
-      const closestToPreviousAngle = getClosestSurrounding(angleToFirstPoint, remainingSurroundingPoints)
+      const closestToPreviousAngle = getClosestSurroundingBasedOnDirection(angleToFirstPoint, remainingSurroundingPoints, 'CW')
       const closestSurrounding = firstPoint ||
         closestToPreviousAngle ||
         remainingSurroundingPoints[0]
